@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://cinevo-backend-7o8r.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
