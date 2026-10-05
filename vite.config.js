@@ -22,7 +22,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: "https://cinevo-frontend.vercel.app/login",
         changeOrigin: true,
         secure: false,
       },
