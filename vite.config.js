@@ -22,9 +22,9 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://cinevo-frontend.vercel.app/login",
+        target: "https://cinevo-backend-7o8r.onrender.com",
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },
