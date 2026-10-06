@@ -628,7 +628,7 @@ const MovieDetails = () => {
 
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/movies", { replace: true })}
                 className="mb-8 flex items-center gap-2 rounded-lg bg-black/30 px-3 py-2 text-sm text-zinc-300 backdrop-blur transition hover:bg-black/50 hover:text-white"
               >
                 <ArrowLeft size={17} />

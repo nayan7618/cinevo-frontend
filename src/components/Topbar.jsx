@@ -27,7 +27,6 @@ import api from "../services/api";
 
 import { logoutUser } from "../features/auth/authSlice";
 
-
 // =====================================================
 // TOPBAR
 // =====================================================
@@ -39,6 +38,26 @@ const Topbar = () => {
   const searchRef = useRef(null);
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const handleSidebarState = (event) => {
+      const isOpen = Boolean(event.detail?.open);
+
+      setMobileSidebarOpen(isOpen);
+
+      if (isOpen) {
+        setShowDropdown(false);
+        searchRef.current?.querySelector("input")?.blur();
+      }
+    };
+
+    window.addEventListener("cinebox:sidebar-state", handleSidebarState);
+
+    return () => {
+      window.removeEventListener("cinebox:sidebar-state", handleSidebarState);
+    };
+  }, []);
 
   // =====================================================
   // AUTH
@@ -416,10 +435,7 @@ const Topbar = () => {
     try {
       setNotificationActionLoading(true);
 
-      const response = await api.patch(
-        `/notifications/read-all`,
-        {},
-      );
+      const response = await api.patch(`/notifications/read-all`, {});
 
       if (response.data?.success) {
         setNotifications((prev) =>
@@ -529,17 +545,22 @@ const Topbar = () => {
   // =====================================================
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/5 bg-[#08080c]/90 px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4">
-      <div className="flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-50 border-b border-white/5 bg-[#08080c]/90 px-3 pb-3 pt-2 backdrop-blur-xl sm:px-6 sm:py-4">
+      <div className="grid grid-cols-[1fr_auto] gap-3 min-[600px]:flex min-[600px]:items-center min-[600px]:justify-between">
         {/* =================================================
             SEARCH
         ================================================= */}
 
-        <div ref={searchRef} className="relative min-w-0 flex-1">
+        <div
+          ref={searchRef}
+          className={`relative col-span-2 min-w-0 w-full sm:col-span-1 sm:flex-1 ${
+            mobileSidebarOpen ? "hidden lg:block" : "block"
+          } min-[600px]:ml-[10rem] lg:ml-0`}
+        >
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search
               size={19}
-              className="absolute left-4 top-1/2 z-10 -translate-y-1/2 text-zinc-600"
+              className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-zinc-600 sm:left-4"
             />
 
             <input
@@ -559,7 +580,7 @@ const Topbar = () => {
               }}
               placeholder="Search movies, series..."
               autoComplete="off"
-              className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.05] pl-12 pr-20 text-sm text-white outline-none transition duration-200 placeholder:text-zinc-500 focus:border-red-500/50 focus:bg-white/[0.07] sm:h-12 sm:text-[15px]"
+              className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.05] pl-10 pr-10 text-sm text-white outline-none transition duration-200 placeholder:text-zinc-500 focus:border-red-500/50 focus:bg-white/[0.07] sm:h-12 sm:pl-12 sm:pr-20 sm:text-[15px]"
             />
 
             <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
@@ -755,7 +776,7 @@ const Topbar = () => {
             RIGHT SECTION
         ================================================= */}
 
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="col-start-2 row-start-1 flex shrink-0 items-center gap-2 sm:col-auto sm:row-auto sm:gap-3">
           {/* PREMIUM */}
 
           <button

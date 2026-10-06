@@ -1393,6 +1393,40 @@ const VideoPlayer = ({
   // FULLSCREEN
   // =========================================================
 
+  // =========================================================
+  // FULLSCREEN
+  // =========================================================
+
+  const isMobileDevice = () => {
+    return window.matchMedia("(max-width: 768px)").matches;
+  };
+
+  const lockLandscape = async () => {
+    if (!isMobileDevice()) return;
+
+    try {
+      if (screen.orientation?.lock) {
+        await screen.orientation.lock("landscape");
+        console.log("📱 Mobile fullscreen → landscape locked");
+      }
+    } catch (err) {
+      console.warn("Landscape lock not supported:", err);
+    }
+  };
+
+  const unlockOrientation = () => {
+    if (!isMobileDevice()) return;
+
+    try {
+      if (screen.orientation?.unlock) {
+        screen.orientation.unlock();
+        console.log("📱 Orientation unlocked");
+      }
+    } catch (err) {
+      console.warn("Orientation unlock failed:", err);
+    }
+  };
+
   const toggleFullscreen = async () => {
     const container = containerRef.current;
 
@@ -1403,10 +1437,15 @@ const VideoPlayer = ({
         await container.requestFullscreen();
 
         setIsFullscreen(true);
+
+        // Mobile only
+        await lockLandscape();
       } else {
         await document.exitFullscreen();
 
         setIsFullscreen(false);
+
+        unlockOrientation();
       }
     } catch (err) {
       console.error("Fullscreen error:", err);
@@ -1414,14 +1453,24 @@ const VideoPlayer = ({
   };
 
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
+    const handleFullscreenChange = async () => {
+      const fullscreen = Boolean(document.fullscreenElement);
+
+      setIsFullscreen(fullscreen);
+
+      if (fullscreen) {
+        await lockLandscape();
+      } else {
+        unlockOrientation();
+      }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+
+      unlockOrientation();
     };
   }, []);
 
@@ -1568,7 +1617,11 @@ const VideoPlayer = ({
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-2xl bg-black shadow-2xl"
+      className={
+        isFullscreen
+          ? "relative h-screen w-screen overflow-hidden bg-black"
+          : "relative mx-auto w-full max-w-6xl overflow-hidden rounded-2xl bg-black shadow-2xl"
+      }
       onMouseMove={resetControlsTimer}
       onMouseLeave={() => {
         if (isPlaying) {
@@ -1585,7 +1638,11 @@ const VideoPlayer = ({
         poster={poster}
         playsInline
         preload="metadata"
-        className="block aspect-video w-full bg-black object-contain"
+        className={
+          isFullscreen
+            ? "block h-full w-full bg-black object-contain"
+            : "block aspect-video w-full bg-black object-contain"
+        }
         crossOrigin="anonymous"
         onClick={handleVideoClick}
         onDoubleClick={handleVideoDoubleClick}

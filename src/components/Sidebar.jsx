@@ -13,7 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 
@@ -36,6 +36,13 @@ const Sidebar = () => {
   ];
 
   const closeMobile = () => setOpen(false);
+  useEffect(()=> {
+    window.dispatchEvent(
+      new CustomEvent("cinebox:sidebar-state",{
+        detail: {open},
+      }),
+    );
+  }, [open])
 
   const handleLogout = async () => {
     try {
@@ -58,7 +65,14 @@ const Sidebar = () => {
       >
         <Menu size={22} />
       </button>
-
+      {/* Mobile brand */}
+      <Link
+        to="/home"
+        className="fixed left-16 top-3 z-[60] flex h-11 items-center rounded-xl px-1 text-lg font-extrabold tracking-tight lg:hidden"
+      >
+        <span className="text-white">CINE</span>
+        <span className="text-red-500">BOX</span>
+      </Link>
       {/* Mobile overlay */}
       {open && (
         <div
@@ -96,11 +110,7 @@ const Sidebar = () => {
             collapsed ? "lg:justify-center" : "justify-between"
           }`}
         >
-          <Link
-            to="/home"
-            onClick={closeMobile}
-            className="min-w-0"
-          >
+          <Link to="/home" onClick={closeMobile} className="min-w-0">
             <div className={collapsed ? "lg:hidden" : ""}>
               <h1 className="text-2xl font-extrabold tracking-tight">
                 <span className="text-white">CINE</span>
