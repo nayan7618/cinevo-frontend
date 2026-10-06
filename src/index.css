@@ -288,3 +288,56 @@ body {
     animation: none;
   }
 }
+@keyframes cineboxSeekLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(10px) scale(0.9);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateX(-2px) scale(1.02);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.94);
+  }
+}
+
+@keyframes cineboxSeekRight {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px) scale(0.9);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateX(2px) scale(1.02);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(8px) scale(0.94);
+  }
+}
+
+@media (max-width: 639px) {
+  .cinebox-seek-left {
+    animation: cineboxSeekLeft 0.45s ease-out both;
+  }
+
+  .cinebox-seek-right {
+    animation: cineboxSeekRight 0.45s ease-out both;
+  }
+}

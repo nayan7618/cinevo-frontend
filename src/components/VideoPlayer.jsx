@@ -51,9 +51,12 @@ const VideoPlayer = ({
   const clickTimerRef = useRef(null);
   const controlsTimerRef = useRef(null);
   const lastTouchRef = useRef(0);
+  const ignoreClickUntilRef = useRef(0);
   const pinchStartDistanceRef = useRef(0);
   const pinchStartZoomRef = useRef(1);
   const [zoom, setZoom] = useState(1);
+  const [seekFeedback, setSeekFeedback] = useState(null);
+  const seekFeedbackTimerRef = useRef(null);
   // =========================================================
   // PLAYER STATE
   // =========================================================
@@ -1396,7 +1399,16 @@ const VideoPlayer = ({
   // =========================================================
 
   const isMobileDevice = () => {
-    return window.matchMedia("(max-width: 768px)").matches;
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    const hasTouch =
+      typeof navigator !== "undefined" && navigator.maxTouchPoints > 0;
+
+    const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+
+    return hasTouch || hasCoarsePointer;
   };
 
   const lockLandscape = async () => {
@@ -1489,9 +1501,74 @@ const VideoPlayer = ({
 
     setZoom(Number(nextZoom.toFixed(2)));
   };
+  const showSeekFeedback = (direction) => {
+    setSeekFeedback(direction);
 
-  const handleTouchEnd = () => {
+    if (seekFeedbackTimerRef.current) {
+      clearTimeout(seekFeedbackTimerRef.current);
+    }
+
+    seekFeedbackTimerRef.current = setTimeout(() => {
+      setSeekFeedback(null);
+    }, 550);
+  };
+  const handleTouchEnd = (event) => {
+    // Prevent the synthetic click generated after touch
+    // from triggering desktop play/pause logic.
+    ignoreClickUntilRef.current = Date.now() + 500;
+    // Always reset pinch state
     pinchStartDistanceRef.current = 0;
+
+    if (!isMobileDevice()) {
+      return;
+    }
+
+    // Ignore multi-touch endings
+    if (event.touches?.length > 0) {
+      return;
+    }
+
+    const touch = event.changedTouches?.[0];
+
+    if (!touch) {
+      return;
+    }
+
+    const now = Date.now();
+    const lastTouch = lastTouchRef.current;
+
+    const isDoubleTap = lastTouch > 0 && now - lastTouch < 320;
+
+    // First tap
+    if (!isDoubleTap) {
+      lastTouchRef.current = now;
+      return;
+    }
+
+    // Double tap detected
+    lastTouchRef.current = 0;
+
+    const video = videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    const rect = video.getBoundingClientRect();
+
+    const touchX = touch.clientX - rect.left;
+
+    const isRightSide = touchX >= rect.width / 2;
+
+    if (isRightSide) {
+      // Right double tap → +10 sec
+      seekBy(10);
+      showSeekFeedback("right");
+    } else {
+      // Left double tap → -10 sec
+      seekBy(-10);
+      showSeekFeedback("left");
+    }
   };
   useEffect(() => {
     const handleFullscreenChange = async () => {
@@ -1607,98 +1684,57 @@ const VideoPlayer = ({
     onNext();
   };
 
-// =========================================================
-// SINGLE / DOUBLE CLICK + MOBILE DOUBLE TAP
-// =========================================================
+  // =========================================================
+  // SINGLE / DOUBLE CLICK + MOBILE DOUBLE TAP
+  // =========================================================
 
-const handleVideoClick = () => {
-  // Mobile:
-  // Single tap should NOT pause/play.
-  if (isMobileDevice()) {
-    return;
-  }
+  const handleVideoClick = () => {
+    // Ignore browser-generated click after touch.
+    if (Date.now() < ignoreClickUntilRef.current) {
+      return;
+    }
 
-  // Desktop: keep existing behavior
-  if (clickTimerRef.current) {
-    clearTimeout(clickTimerRef.current);
-  }
+    // Mobile/tablet single tap should do nothing.
+    if (isMobileDevice()) {
+      return;
+    }
 
-  clickTimerRef.current = setTimeout(() => {
-    togglePlay();
-    clickTimerRef.current = null;
-  }, 220);
-};
-
-const handleVideoDoubleClick = () => {
-  // Mobile double-tap is handled by touch.
-  if (isMobileDevice()) {
-    return;
-  }
-
-  // Desktop: keep existing fullscreen behavior
-  if (clickTimerRef.current) {
-    clearTimeout(clickTimerRef.current);
-    clickTimerRef.current = null;
-  }
-
-  toggleFullscreen();
-};
-
-const handleVideoTouchEnd = (event) => {
-  if (!isMobileDevice()) {
-    return;
-  }
-
-  const touch = event.changedTouches?.[0];
-
-  if (!touch) {
-    return;
-  }
-
-  const now = Date.now();
-  const lastTouch = lastTouchRef.current;
-
-  const isDoubleTap =
-    lastTouch > 0 &&
-    now - lastTouch < 320;
-
-  if (!isDoubleTap) {
-    lastTouchRef.current = now;
-    return;
-  }
-
-  lastTouchRef.current = 0;
-
-  const video = videoRef.current;
-
-  if (!video) {
-    return;
-  }
-
-  const rect = video.getBoundingClientRect();
-
-  const touchX = touch.clientX - rect.left;
-
-  const isRightSide = touchX >= rect.width / 2;
-
-  if (isRightSide) {
-    // Right double tap → +10 sec
-    seekBy(10);
-  } else {
-    // Left double tap → -10 sec
-    seekBy(-10);
-  }
-};
-
-useEffect(() => {
-  return () => {
+    // Desktop: existing play/pause behavior.
     if (clickTimerRef.current) {
       clearTimeout(clickTimerRef.current);
     }
 
-    lastTouchRef.current = 0;
+    clickTimerRef.current = setTimeout(() => {
+      togglePlay();
+      clickTimerRef.current = null;
+    }, 220);
   };
-}, []);
+
+  const handleVideoDoubleClick = () => {
+    // Mobile double tap handled by touch.
+    if (isMobileDevice()) {
+      return;
+    }
+
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+
+      clickTimerRef.current = null;
+    }
+
+    // Desktop → fullscreen
+    toggleFullscreen();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
+
+      lastTouchRef.current = 0;
+    };
+  }, []);
 
   // =========================================================
   // PROGRESS
@@ -1749,7 +1785,7 @@ useEffect(() => {
         style={{
           transform: `scale(${zoom})`,
           transformOrigin: "center center",
-          touchAction: isFullscreen ? "none" : "auto",
+          touchAction: isTouchDevice ? "manipulation" : "auto",
         }}
         crossOrigin="anonymous"
         onClick={handleVideoClick}
@@ -1758,7 +1794,27 @@ useEffect(() => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       />
+      {seekFeedback === "left" && (
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-40 flex w-1/2 items-center justify-center">
+          <div className="cinebox-seek-left rounded-full bg-black/40 px-3 py-2 text-white backdrop-blur-sm">
+            <div className="flex items-center gap-1.5">
+              <span className="text-2xl font-bold leading-none">{"<<"}</span>
+              <span className="text-xs font-medium">10s</span>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {seekFeedback === "right" && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-40 flex w-1/2 items-center justify-center">
+          <div className="cinebox-seek-right rounded-full bg-black/40 px-3 py-2 text-white backdrop-blur-sm">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium">10s</span>
+              <span className="text-2xl font-bold leading-none">{">>"}</span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ===================================================
           BUFFERING SPINNER
           Sirf actual playback buffering par show hoga.
