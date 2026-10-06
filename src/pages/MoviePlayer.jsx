@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdManager from "@/components/AdManager";
 import useVideoAds from "@/hooks/useVideoAds";
-import api from "../services/api"
+import api from "../services/api";
 import { ArrowLeft, AlertCircle, Play, Loader2 } from "lucide-react";
 
 import VideoPlayer from "@/components/VideoPlayer";
@@ -44,7 +44,26 @@ const MoviePlayer = () => {
   } = useVideoAds();
 
   const [startVideoAfterAd, setStartVideoAfterAd] = useState(false);
+  const [showEndScreen, setShowEndScreen] = useState(false);
+  const [recommendedMovies, setRecommendedMovies] = useState([]);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  useEffect(() => {
+    if (!showEndScreen) {
+      return;
+    }
 
+    setStartVideoAfterAd(false);
+
+    const videoElements = document.querySelectorAll("video");
+
+    videoElements.forEach((videoElement) => {
+      try {
+        videoElement.pause();
+      } catch (error) {
+        console.warn("Failed to pause video:", error);
+      }
+    });
+  }, [showEndScreen]);
   // =====================================================
   // SITE AD SETTINGS
   // =====================================================
@@ -457,7 +476,7 @@ const MoviePlayer = () => {
   // AD COMPLETE
   // =====================================================
 
-  const handleAdComplete = () => {
+  const handleAdComplete = async () => {
     const currentAdType = adType;
 
     // =====================================================
@@ -528,6 +547,18 @@ const MoviePlayer = () => {
     if (currentAdType === "postRoll") {
       console.log("✅ Post-roll completed");
 
+      setStartVideoAfterAd(false);
+
+      const videoElements = document.querySelectorAll("video");
+
+      videoElements.forEach((videoElement) => {
+        videoElement.pause();
+      });
+
+      await fetchMovieRecommendations()
+
+      setShowEndScreen(true);
+
       return;
     }
   };
@@ -539,7 +570,34 @@ const MoviePlayer = () => {
   const handleAdSkip = () => {
     handleAdComplete();
   };
+  const fetchMovieRecommendations = async () => {
+    if (!movieId) {
+      return;
+    }
 
+    try {
+      setRecommendationLoading(true);
+
+      const response = await api.get(`/recommendations/movie/${movieId}`);
+
+      if (response.data?.success) {
+        const movies = (response.data?.recommendations || [])
+          .map((item) => item?.movie)
+          .filter(Boolean)
+          .slice(0, 6);
+
+        setRecommendedMovies(movies);
+      } else {
+        setRecommendedMovies([]);
+      }
+    } catch (error) {
+      console.error("Movie recommendations fetch error:", error);
+
+      setRecommendedMovies([]);
+    } finally {
+      setRecommendationLoading(false);
+    }
+  };
   // =====================================================
   // VIDEO ENDED
   // =====================================================
@@ -589,9 +647,15 @@ const MoviePlayer = () => {
     if (!showPostRoll) {
       console.log("ℹ️ Post-roll already shown or disabled");
 
+      videoElement.pause();
+      setStartVideoAfterAd(false);
+
+      await fetchMovieRecommendations();
+
+      setShowEndScreen(true);
+
       return;
     }
-
     markPostRollShown();
 
     console.log("📺 STARTING POST-ROLL AD");
@@ -772,6 +836,114 @@ const MoviePlayer = () => {
                 <p className="mt-2 text-xs text-zinc-600">
                   The movie video is currently unavailable.
                 </p>
+              </div>
+            )}
+            {showEndScreen && (
+              <div className="cinebox-mobile-fade absolute inset-0 z-50 overflow-y-auto bg-[#08080c]/95 p-4 sm:p-6">
+                <div className="mx-auto flex min-h-full max-w-6xl flex-col justify-center">
+                  <div className="cinebox-slide-up mb-5 text-center sm:text-left">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-red-500">
+                      Movie Finished
+                    </p>
+
+                    <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+                      You might also like
+                    </h2>
+
+                    <p className="mt-1 text-sm text-zinc-500">
+                      Recommended based on this movie
+                    </p>
+                  </div>
+
+                  <div
+                    className="cinebox-mobile-up mb-6 flex items-center justify-center gap-3 sm:justify-start"
+                    style={{ animationDelay: "120ms" }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowEndScreen(false);
+
+                        const videoElement = document.querySelector("video");
+
+                        if (videoElement) {
+                          videoElement.currentTime = 0;
+                          videoElement.play().catch(() => {});
+                        }
+                      }}
+                      className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:scale-105 hover:bg-zinc-200 active:scale-95"
+                    >
+                      Replay
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      className="rounded-xl bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-105 hover:bg-white/15 active:scale-95"
+                    >
+                      Back to Movie
+                    </button>
+                  </div>
+
+                  {recommendationLoading ? (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+                      {Array.from({ length: 6 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className="aspect-[2/3] animate-pulse rounded-xl bg-white/5"
+                        />
+                      ))}
+                    </div>
+                  ) : recommendedMovies.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+                      {recommendedMovies.map((recommendedMovie, index) => (
+                        <button
+                          key={recommendedMovie.id}
+                          type="button"
+                          onClick={() =>
+                            navigate(`/movie/${recommendedMovie.id}`)
+                          }
+                          className="cinebox-mobile-card group overflow-hidden rounded-xl text-left"
+                          style={{
+                            animationDelay: `${180 + index * 70}ms`,
+                          }}
+                        >
+                          <div className="aspect-[2/3] overflow-hidden rounded-xl bg-zinc-900">
+                            <img
+                              src={
+                                recommendedMovie.posterUrl ||
+                                recommendedMovie.backdropUrl ||
+                                "/images/placeholder.jpg"
+                              }
+                              alt={recommendedMovie.title}
+                              className="h-full w-full object-cover transition-transform duration-300 active:scale-105"
+                              onError={(e) => {
+                                e.currentTarget.src = "/images/placeholder.jpg";
+                              }}
+                            />
+                          </div>
+
+                          <p className="mt-2 truncate text-sm font-medium text-white">
+                            {recommendedMovie.title}
+                          </p>
+
+                          <p className="mt-1 truncate text-[10px] text-zinc-500">
+                            {[
+                              recommendedMovie.releaseYear,
+                              recommendedMovie.language,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-white/5 bg-white/[0.03] p-6 text-center text-sm text-zinc-500">
+                      No recommendations available right now.
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

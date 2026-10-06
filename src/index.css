@@ -196,3 +196,95 @@ body,
 body {
   min-height: 100vh;
 }
+@keyframes cineboxFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cineboxSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cineboxScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.cinebox-fade-in {
+  animation: cineboxFadeIn 0.45s ease-out both;
+}
+
+.cinebox-slide-up {
+  animation: cineboxSlideUp 0.55s ease-out both;
+}
+
+.cinebox-scale-in {
+  animation: cineboxScaleIn 0.45s ease-out both;
+}
+@keyframes cineboxMobileFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cineboxMobileUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cineboxMobileCard {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cinebox-mobile-fade {
+  animation: cineboxMobileFade 0.35s ease-out both;
+}
+
+.cinebox-mobile-up {
+  animation: cineboxMobileUp 0.45s ease-out both;
+}
+
+.cinebox-mobile-card {
+  animation: cineboxMobileCard 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cinebox-mobile-fade,
+  .cinebox-mobile-up,
+  .cinebox-mobile-card {
+    animation: none;
+  }
+}

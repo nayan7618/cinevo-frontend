@@ -50,6 +50,7 @@ const VideoPlayer = ({
 
   const clickTimerRef = useRef(null);
   const controlsTimerRef = useRef(null);
+  const lastTouchRef = useRef(0);
   const pinchStartDistanceRef = useRef(0);
   const pinchStartZoomRef = useRef(1);
   const [zoom, setZoom] = useState(1);
@@ -1606,39 +1607,98 @@ const VideoPlayer = ({
     onNext();
   };
 
-  // =========================================================
-  // SINGLE / DOUBLE CLICK
-  // =========================================================
+// =========================================================
+// SINGLE / DOUBLE CLICK + MOBILE DOUBLE TAP
+// =========================================================
 
-  const handleVideoClick = () => {
+const handleVideoClick = () => {
+  // Mobile:
+  // Single tap should NOT pause/play.
+  if (isMobileDevice()) {
+    return;
+  }
+
+  // Desktop: keep existing behavior
+  if (clickTimerRef.current) {
+    clearTimeout(clickTimerRef.current);
+  }
+
+  clickTimerRef.current = setTimeout(() => {
+    togglePlay();
+    clickTimerRef.current = null;
+  }, 220);
+};
+
+const handleVideoDoubleClick = () => {
+  // Mobile double-tap is handled by touch.
+  if (isMobileDevice()) {
+    return;
+  }
+
+  // Desktop: keep existing fullscreen behavior
+  if (clickTimerRef.current) {
+    clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = null;
+  }
+
+  toggleFullscreen();
+};
+
+const handleVideoTouchEnd = (event) => {
+  if (!isMobileDevice()) {
+    return;
+  }
+
+  const touch = event.changedTouches?.[0];
+
+  if (!touch) {
+    return;
+  }
+
+  const now = Date.now();
+  const lastTouch = lastTouchRef.current;
+
+  const isDoubleTap =
+    lastTouch > 0 &&
+    now - lastTouch < 320;
+
+  if (!isDoubleTap) {
+    lastTouchRef.current = now;
+    return;
+  }
+
+  lastTouchRef.current = 0;
+
+  const video = videoRef.current;
+
+  if (!video) {
+    return;
+  }
+
+  const rect = video.getBoundingClientRect();
+
+  const touchX = touch.clientX - rect.left;
+
+  const isRightSide = touchX >= rect.width / 2;
+
+  if (isRightSide) {
+    // Right double tap → +10 sec
+    seekBy(10);
+  } else {
+    // Left double tap → -10 sec
+    seekBy(-10);
+  }
+};
+
+useEffect(() => {
+  return () => {
     if (clickTimerRef.current) {
       clearTimeout(clickTimerRef.current);
     }
 
-    clickTimerRef.current = setTimeout(() => {
-      togglePlay();
-
-      clickTimerRef.current = null;
-    }, 220);
+    lastTouchRef.current = 0;
   };
-
-  const handleVideoDoubleClick = () => {
-    if (clickTimerRef.current) {
-      clearTimeout(clickTimerRef.current);
-
-      clickTimerRef.current = null;
-    }
-
-    toggleFullscreen();
-  };
-
-  useEffect(() => {
-    return () => {
-      if (clickTimerRef.current) {
-        clearTimeout(clickTimerRef.current);
-      }
-    };
-  }, []);
+}, []);
 
   // =========================================================
   // PROGRESS
