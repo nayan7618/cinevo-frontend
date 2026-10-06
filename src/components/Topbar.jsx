@@ -39,7 +39,7 @@ const Topbar = () => {
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
+  const [isTargetViewport, setIsTargetViewport] = useState(false);
   useEffect(() => {
     const handleSidebarState = (event) => {
       const isOpen = Boolean(event.detail?.open);
@@ -58,7 +58,21 @@ const Topbar = () => {
       window.removeEventListener("cinebox:sidebar-state", handleSidebarState);
     };
   }, []);
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(width: 393px) and (height: 892px)");
 
+    const handleViewportChange = () => {
+      setIsTargetViewport(mediaQuery.matches);
+    };
+
+    handleViewportChange();
+
+    mediaQuery.addEventListener("change", handleViewportChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleViewportChange);
+    };
+  }, []);
   // =====================================================
   // AUTH
   // =====================================================
@@ -554,8 +568,8 @@ const Topbar = () => {
         <div
           ref={searchRef}
           className={`relative col-span-2 min-w-0 w-full sm:col-span-1 sm:flex-1 ${
-            mobileSidebarOpen ? "hidden lg:block" : "block"
-          } min-[600px]:ml-[10rem] lg:ml-0`}
+            isTargetViewport && mobileSidebarOpen ? "hidden lg:block" : "block"
+          } min-[600px]:ml-[12rem] lg:ml-0`}
         >
           <form onSubmit={handleSearchSubmit} className="relative">
             <Search

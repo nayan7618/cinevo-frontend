@@ -50,7 +50,9 @@ const VideoPlayer = ({
 
   const clickTimerRef = useRef(null);
   const controlsTimerRef = useRef(null);
-
+  const pinchStartDistanceRef = useRef(0);
+  const pinchStartZoomRef = useRef(1);
+  const [zoom, setZoom] = useState(1);
   // =========================================================
   // PLAYER STATE
   // =========================================================
@@ -1388,11 +1390,6 @@ const VideoPlayer = ({
 
     resetControlsTimer();
   };
-
-  // =========================================================
-  // FULLSCREEN
-  // =========================================================
-
   // =========================================================
   // FULLSCREEN
   // =========================================================
@@ -1451,7 +1448,50 @@ const VideoPlayer = ({
       console.error("Fullscreen error:", err);
     }
   };
+  const getTouchDistance = (touch1, touch2) => {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
 
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = (event) => {
+    if (!isFullscreen || event.touches.length !== 2) {
+      return;
+    }
+
+    const distance = getTouchDistance(event.touches[0], event.touches[1]);
+
+    pinchStartDistanceRef.current = distance;
+    pinchStartZoomRef.current = zoom;
+  };
+
+  const handleTouchMove = (event) => {
+    if (
+      !isFullscreen ||
+      event.touches.length !== 2 ||
+      !pinchStartDistanceRef.current
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const distance = getTouchDistance(event.touches[0], event.touches[1]);
+
+    const scaleChange = distance / pinchStartDistanceRef.current;
+
+    const nextZoom = Math.min(
+      Math.max(pinchStartZoomRef.current * scaleChange, 1),
+      2,
+    );
+
+    setZoom(Number(nextZoom.toFixed(2)));
+  };
+
+  const handleTouchEnd = () => {
+    pinchStartDistanceRef.current = 0;
+  };
   useEffect(() => {
     const handleFullscreenChange = async () => {
       const fullscreen = Boolean(document.fullscreenElement);
@@ -1613,7 +1653,8 @@ const VideoPlayer = ({
   // =========================================================
   // MAIN UI
   // =========================================================
-
+  const isTouchDevice =
+    typeof navigator !== "undefined" && navigator.maxTouchPoints > 0;
   return (
     <div
       ref={containerRef}
@@ -1640,12 +1681,22 @@ const VideoPlayer = ({
         preload="metadata"
         className={
           isFullscreen
-            ? "block h-full w-full bg-black object-contain"
+            ? `block h-full w-full bg-black ${
+                isTouchDevice ? "object-contain" : "object-cover"
+              }`
             : "block aspect-video w-full bg-black object-contain"
         }
+        style={{
+          transform: `scale(${zoom})`,
+          transformOrigin: "center center",
+          touchAction: isFullscreen ? "none" : "auto",
+        }}
         crossOrigin="anonymous"
         onClick={handleVideoClick}
         onDoubleClick={handleVideoDoubleClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       />
 
       {/* ===================================================
