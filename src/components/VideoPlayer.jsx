@@ -27,6 +27,8 @@ const VideoPlayer = ({
   resumeTime = 0,
   autoPlay = true,
 
+  fullscreenTargetRef = null,
+
   onProgress,
   onTimeUpdate,
   onEnded,
@@ -1438,23 +1440,23 @@ const VideoPlayer = ({
   };
 
   const toggleFullscreen = async () => {
-    const container = containerRef.current;
+    const fullscreenTarget =
+      fullscreenTargetRef?.current || containerRef.current;
 
-    if (!container) return;
+    if (!fullscreenTarget) {
+      console.warn("Fullscreen target not found");
+      return;
+    }
 
     try {
       if (!document.fullscreenElement) {
-        await container.requestFullscreen();
+        await fullscreenTarget.requestFullscreen();
 
-        setIsFullscreen(true);
-
-        // Mobile only
-        await lockLandscape();
+        if (isMobileDevice()) {
+          await lockLandscape();
+        }
       } else {
         await document.exitFullscreen();
-
-        setIsFullscreen(false);
-
         unlockOrientation();
       }
     } catch (err) {
@@ -1754,11 +1756,11 @@ const VideoPlayer = ({
   return (
     <div
       ref={containerRef}
-      className={
+      className={`cinebox-video-player ${
         isFullscreen
-          ? "relative h-screen w-screen overflow-hidden bg-black"
-          : "relative mx-auto w-full max-w-6xl overflow-hidden rounded-2xl bg-black shadow-2xl"
-      }
+          ? "relative h-full w-full overflow-hidden bg-black"
+          : "relative mx-auto aspect-video w-full max-w-6xl overflow-hidden rounded-2xl bg-black shadow-2xl"
+      }`}
       onMouseMove={resetControlsTimer}
       onMouseLeave={() => {
         if (isPlaying) {

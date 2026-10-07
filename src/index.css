@@ -341,3 +341,16 @@ body {
     animation: cineboxSeekRight 0.45s ease-out both;
   }
 }
+.fullscreen-player:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: auto;
+  border-radius: 0;
+  background: #000;
+}
+
+.fullscreen-player:fullscreen .cinebox-video-player {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}

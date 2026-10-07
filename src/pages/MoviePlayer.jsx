@@ -90,7 +90,7 @@ const MoviePlayer = () => {
 
   // Prevent duplicate view requests for the same movie session
   const viewRecordedRef = useRef(false);
-
+  const fullscreenPlayerRef = useRef(null);
   // =====================================================
   // FETCH MOVIE + PLAYBACK
   // =====================================================
@@ -555,7 +555,7 @@ const MoviePlayer = () => {
         videoElement.pause();
       });
 
-      await fetchMovieRecommendations()
+      await fetchMovieRecommendations();
 
       setShowEndScreen(true);
 
@@ -801,7 +801,9 @@ const MoviePlayer = () => {
         ================================================= */}
 
         <section>
-          <div className="relative aspect-video overflow-hidden rounded-2xl bg-black shadow-2xl">
+          <div 
+          ref={fullscreenPlayerRef}
+          className="fullscreen-player relative aspect-video overflow-hidden rounded-2xl bg-black shadow-2xl">
             {isAdPlaying && (
               <AdManager
                 adType={adType}
@@ -819,6 +821,7 @@ const MoviePlayer = () => {
                 title={movie.title}
                 resumeTime={resumeTime}
                 autoPlay={startVideoAfterAd}
+                fullscreenTargetRef={fullscreenPlayerRef}
                 onProgress={saveProgress}
                 onTimeUpdate={handleMidRollCheck}
                 onEnded={handleVideoEnded}
