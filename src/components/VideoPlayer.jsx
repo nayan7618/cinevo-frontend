@@ -95,7 +95,7 @@ const VideoPlayer = ({
   const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(-1);
 
   const [isSeeking, setIsSeeking] = useState(false);
-
+  const [showRemainingTime, setShowRemainingTime] = useState(false);
   // =========================================================
   // DESTROY HLS
   // =========================================================
@@ -134,7 +134,16 @@ const VideoPlayer = ({
 
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
+  const formatMobileTime = (seconds) => {
+    if (!Number.isFinite(seconds) || seconds < 0) {
+      return "0:00";
+    }
 
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+
+    return `${mins}:${String(secs).padStart(2, "0")}`;
+  };
   // =========================================================
   // CLOSE MENUS
   // =========================================================
@@ -1928,13 +1937,13 @@ const VideoPlayer = ({
             grey/red ko hide nahi karega.
         ================================================= */}
 
-        <div className="relative mb-3 flex h-5 w-full items-center">
+        <div className="cinebox-seekbar relative mb-1 flex h-7 w-full items-center sm:mb-3 sm:h-5">
           {/* Background / remaining */}
-          <div className="pointer-events-none absolute left-0 right-0 h-1.5 rounded-full bg-white/20" />
+          <div className="cinebox-seekbar-track pointer-events-none absolute left-0 right-0 h-1.5 rounded-full bg-white/20 sm:h-1.5" />
 
           {/* Buffered */}
           <div
-            className="pointer-events-none absolute left-0 h-1.5 rounded-full bg-zinc-500"
+            className="cinebox-seekbar-buffered pointer-events-none absolute left-0 h-1.5 rounded-full bg-zinc-500 sm:h-1.5"
             style={{
               width: `${visibleBufferedPercent}%`,
             }}
@@ -1942,7 +1951,7 @@ const VideoPlayer = ({
 
           {/* Played */}
           <div
-            className="pointer-events-none absolute left-0 h-1.5 rounded-full bg-red-600"
+            className="cinebox-seekbar-played pointer-events-none absolute left-0 h-1.5 rounded-full bg-red-600 sm:h-1.5"
             style={{
               width: `${progressPercent}%`,
             }}
@@ -1961,7 +1970,7 @@ const VideoPlayer = ({
             onTouchStart={() => setIsSeeking(true)}
             onTouchEnd={() => setIsSeeking(false)}
             aria-label="Video progress"
-            className="relative z-10 h-5 w-full cursor-pointer appearance-none bg-transparent accent-red-600"
+            className="relative z-10 h-7 w-full cursor-pointer appearance-none bg-transparent accent-red-600 sm:h-5"
           />
         </div>
 
@@ -2076,9 +2085,16 @@ const VideoPlayer = ({
                 TIME
             ================================================= */}
 
-            <span className="ml-1 whitespace-nowrap text-xs text-white/90 sm:text-sm">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
+            <button
+              type="button"
+              onClick={() => setShowRemainingTime((prev) => !prev)}
+              className="ml-1 shrink-0 whitespace-nowrap text-[11px] font-medium text-white/90 sm:text-sm"
+              aria-label="Toggle video time"
+            >
+              {showRemainingTime
+                ? `-${formatMobileTime(Math.max(duration - currentTime, 0))}`
+                : `${formatMobileTime(currentTime)} / ${formatMobileTime(duration)}`}
+            </button>
           </div>
 
           {/* =================================================
@@ -2101,7 +2117,7 @@ const VideoPlayer = ({
                   setShowSettings(false);
                 }}
                 title="Audio language"
-                className={`rounded-lg p-2 text-white transition hover:bg-white/15 ${
+                className={`rounded-lg p-2 text-white transition hover:bg-white/15 sm:ml-0 ml-1 ${
                   showAudioMenu ? "bg-white/15" : ""
                 }`}
               >

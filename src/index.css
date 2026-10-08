@@ -364,3 +364,42 @@ body {
   font-size: 1.05em;
   font-weight: 500;
 }
+/* =========================================================
+   CINEVO MOBILE SEEK BAR
+========================================================= */
+
+@media (max-width: 639px) {
+  .cinebox-seekbar {
+    height: 28px;
+    margin-bottom: 4px;
+  }
+
+  .cinebox-seekbar-track,
+  .cinebox-seekbar-buffered,
+  .cinebox-seekbar-played {
+    height: 3px;
+  }
+
+  .cinebox-seekbar input[type="range"] {
+    height: 28px;
+  }
+
+  .cinebox-seekbar input[type="range"]::-webkit-slider-thumb {
+    width: 11px;
+    height: 11px;
+    border: 0;
+    border-radius: 9999px;
+    background: #ef4444;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .cinebox-seekbar input[type="range"]::-moz-range-thumb {
+    width: 11px;
+    height: 11px;
+    border: 0;
+    border-radius: 9999px;
+    background: #ef4444;
+    cursor: pointer;
+  }
+}
