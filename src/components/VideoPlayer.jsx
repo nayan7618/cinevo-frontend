@@ -446,11 +446,12 @@ const VideoPlayer = ({
         // --------------------------------------------------
         // SUBTITLES
         // --------------------------------------------------
+        // --------------------------------------------------
+        // SUBTITLES
+        // --------------------------------------------------
 
-        const subtitleList = hls.subtitleTracks || [];
-
-        if (subtitleList.length > 0) {
-          const formattedSubtitles = subtitleList.map((track, index) => ({
+        const updateSubtitleTracks = (tracks = []) => {
+          const formattedSubtitles = tracks.map((track, index) => ({
             index,
             id: track.id,
 
@@ -475,21 +476,33 @@ const VideoPlayer = ({
             (track) => track.default,
           );
 
-          const hlsSubtitleIndex = Number.isInteger(hls.subtitleTrack)
+          const activeSubtitleIndex = Number.isInteger(hls.subtitleTrack)
             ? hls.subtitleTrack
             : -1;
 
           setSelectedSubtitleTrack(
-            hlsSubtitleIndex >= 0
-              ? hlsSubtitleIndex
+            activeSubtitleIndex >= 0 &&
+              activeSubtitleIndex < formattedSubtitles.length
+              ? activeSubtitleIndex
               : defaultSubtitleIndex >= 0
                 ? defaultSubtitleIndex
                 : -1,
           );
-        } else {
-          setSubtitleTracks([]);
-          setSelectedSubtitleTrack(-1);
-        }
+
+          console.log("💬 Subtitle tracks:", formattedSubtitles);
+        };
+
+        // MANIFEST PARSED
+        updateSubtitleTracks(data?.subtitleTracks || hls.subtitleTracks || []);
+
+        // SUBTITLE TRACKS UPDATED
+        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, subtitleData) => {
+          if (!isMounted) return;
+
+          updateSubtitleTracks(
+            subtitleData?.subtitleTracks || hls.subtitleTracks || [],
+          );
+        });
       });
 
       // =====================================================
